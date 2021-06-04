@@ -2,6 +2,7 @@
   (:require [covering.utils :as utils]))
 
 
+;; algorithm from the book Purely Functional Data structures
 (defn balance [{arg-color :color
                 arg-left  :left
                 arg-val   :val
@@ -68,39 +69,24 @@
 
 
 
+;; modified version of algorithm from Chris Okasaki's Book
 (defn insert [event {:keys [val left right color] :as tree} state]
   (cond
 
     (nil? tree)
-    (do
-     (prn "hit")
-     [{:val   event
-       :color :red} (conj state event)]) ;; TODO remainder handling
+    [{:val   event
+      :color :red} (conj state event)] ;; TODO remainder handling
 
     ;; if disjoint then insert
     (and (utils/disjoint? event val)
          (< (first event) (first val)))
     (let [[t s] (insert event left state)]
-      ;(prn "=====left ===========")
-      ;(prn event)
-      ;(prn tree)
-      ;(prn t)
-      ;(prn (balance (assoc tree :left t)))
-      ;(prn "======================")
       [(balance (assoc tree :left t)) s])
 
 
     (and (utils/disjoint? event val)
          (> (first event) (first val)))
     (let [[t s] (insert event right state)]
-      ;(prn "======= right ============")
-      ;(prn event)
-      ;(prn tree)
-      ;(prn t)
-      ;(prn (assoc tree :right t))
-      ;(prn (balance (assoc tree :right t)))
-      ;(prn "==========================")
-
       [(balance (assoc tree :right t)) s])
 
 
@@ -112,22 +98,16 @@
     ;; TODO refactor
     :otherwise
     (let [{:keys [events cover-split remainder]} (utils/breaker event val)]
-      ;(prn "========= EVENTS ======")
-      ;(prn  (concat (rest events) (if remainder [remainder] [])))
-      ;(prn "===================")
       (reduce
        (fn [[t s] event]
          (let [[t_ s_] (insert event t s)]
-           ;(prn "recursive " t_)
            [(assoc t_ :color :black)
             s_]))
 
        [(assoc tree :val (first events)) (concat state cover-split)]
 
-       (concat (rest events) (if remainder [remainder] []))))
+       (concat (rest events) (if remainder [remainder] []))))))
 
-    ;; if overlap change val to the head
-    ))
 
 
 (defn insert-into-rb-tree [event rb-tree]
