@@ -1,11 +1,12 @@
-(ns covering.redblack-tree)
+(ns covering.redblack-tree
+  (:require [covering.utils :as utils]))
 
 
 (defn balance [{arg-color :color
                 arg-left  :left
                 arg-val   :val
-                arg-right :right}]
-  (if (= arg-color :red)
+                arg-right :right :as tree}]
+  (if (= arg-color :black)
 
    (cond
 
@@ -56,7 +57,9 @@
       (= (:color arg-right) :red)
       (= (get-in arg-right [:right :color]) :red))
      (assoc arg-right
-            :left (assoc arg-left :right (get arg-right :right))))
+            :left (assoc tree :right (get arg-right :left)))
+
+     :otherwise tree)
 
   {:val   arg-val
    :color arg-color
@@ -69,39 +72,64 @@
   (cond
 
     (nil? tree)
-    [{:val   event
-      :color :red} (conj state event)] ;; TODO remainder handling
+    (do
+     (prn "hit")
+     [{:val   event
+       :color :red} (conj state event)]) ;; TODO remainder handling
 
     ;; if disjoint then insert
-    (and (disjoint? event val)
+    (and (utils/disjoint? event val)
          (< (first event) (first val)))
     (let [[t s] (insert event left state)]
+      ;(prn "=====left ===========")
+      ;(prn event)
+      ;(prn tree)
+      ;(prn t)
+      ;(prn (balance (assoc tree :left t)))
+      ;(prn "======================")
       [(balance (assoc tree :left t)) s])
 
 
-    (and (disjoint? event val)
+    (and (utils/disjoint? event val)
          (> (first event) (first val)))
     (let [[t s] (insert event right state)]
+      ;(prn "======= right ============")
+      ;(prn event)
+      ;(prn tree)
+      ;(prn t)
+      ;(prn (assoc tree :right t))
+      ;(prn (balance (assoc tree :right t)))
+      ;(prn "==========================")
+
       [(balance (assoc tree :right t)) s])
 
 
-    (and (disjoint? event val)
+    (and (utils/disjoint? event val)
          (= (first event) (first val)))
-    [tree state]
+    [tree (conj state event)]
 
 
     ;; TODO refactor
     :otherwise
-    (let [{:keys [events cover-split remainder]} (utils/breaker2 event val)]
-      (reduce (fn [[t s] event]
-                (insert event t s))
-              [(assoc tree :val (first events)) (conj state cover-split)]
-              (concat (rest events) (if remainder [remainder] []))))
+    (let [{:keys [events cover-split remainder]} (utils/breaker event val)]
+      ;(prn "========= EVENTS ======")
+      ;(prn  (concat (rest events) (if remainder [remainder] [])))
+      ;(prn "===================")
+      (reduce
+       (fn [[t s] event]
+         (let [[t_ s_] (insert event t s)]
+           ;(prn "recursive " t_)
+           [(assoc t_ :color :black)
+            s_]))
+
+       [(assoc tree :val (first events)) (concat state cover-split)]
+
+       (concat (rest events) (if remainder [remainder] []))))
 
     ;; if overlap change val to the head
     ))
 
+
 (defn insert-into-rb-tree [event rb-tree]
-  (-> event
-      (insert rb-tree {})
-      (assoc :color :black)))
+  (let [[tree state] (insert event rb-tree [])]
+    [(assoc tree :color :black) state]))
