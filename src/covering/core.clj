@@ -8,20 +8,22 @@
 ;; type Event = (Int, Int)
 ;; type MapDS = Map Event [Event]
 ;; :: [(Either Event MapDS)] -> MapDS -> Event -> MapDS
+;; meaning of output of type MapDS, values are list of overlapping events (if count > 1)
+;; and keys are disjoint intersections of overlapping events
 (defn update-mapping [fragment-list mapping-ds event]
-  (reduce (fn [acc fragment]
+  (reduce (fn [map-ds fragment]
             (if-not (map? fragment)
-              (let [events (get acc fragment)]
-                (assoc acc fragment (or (and events (concat events [event]))
-                                        [event])))
+              (let [events (get map-ds fragment)]
+                (assoc map-ds fragment (or (and events (conj events event))
+                                           [event])))
               (let [[k v]  (first fragment)
-                    events (get acc k)]
+                    events (get map-ds k)]
                 (reduce (fn [acc_ fragment]
                           (-> acc_
                               (dissoc k)
                               (assoc fragment (cond-> events
                                                 (= event fragment) (conj event)))))
-                        acc v))))
+                        map-ds v))))
           mapping-ds fragment-list))
 
 

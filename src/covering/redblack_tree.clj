@@ -75,7 +75,7 @@
 
     (nil? tree)
     [{:val   event
-      :color :red} (conj state event)] ;; TODO remainder handling
+      :color :red} (conj state event)]
 
     ;; if disjoint then insert
     (and (utils/disjoint? event val)
@@ -95,14 +95,13 @@
     [tree (conj state event)]
 
 
-    ;; TODO refactor
     :otherwise
     (let [{:keys [events cover-split remainder]} (utils/breaker event val)]
       (reduce
-       (fn [[t s] event]
-         (let [[t_ s_] (insert event t s)]
-           [(assoc t_ :color :black)
-            s_]))
+       (fn [[tree state] event]
+         (let [[mod-tree mod-state] (insert event tree state)]
+           [(assoc mod-tree :color :black)
+            mod-state]))
 
        [(assoc tree :val (first events)) (concat state cover-split)]
 
